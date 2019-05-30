@@ -1,0 +1,87 @@
+<div *ngIf="isVisible">
+  <div *ngIf="isVisibleGlobal" class="row">
+    <!-- normal view -->
+    <div *ngIf="!inEditMode" class="col">
+      <div (click)="editMode()" class="card border mb-0" style="cursor: pointer;">
+        <div class="card-block p-10">
+          <div class="row">
+            <div class="col-6">
+              <h3 class="f-16 text-uppercase m-0">
+                <i class="icomoon-recipe f-20 mr-2"></i>Brýlové poukazy</h3>
+            </div>
+            <div class="col-6 align-self-center text-right">
+              <span *ngIf="getAppliedVouchersCount() === 0" class="f-16 text-danger">NEUPLATNĚNY</span>
+              <span *ngIf="getAppliedVouchersCount() === 1" class="f-16 text-success">1 UPLATNĚN</span>
+              <span *ngIf="getAppliedVouchersCount() > 1" class="f-16 text-success">{{vouchers.length}} UPLATNĚNY</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- edit view -->
+    <div *ngIf="inEditMode" class="col sft-vouchers">
+      <div class="p-5">
+        <div class="row">
+          <div class="col-2 d-flex align-items-center">
+            <i (click)="goBack()" class="icon-arrow-left-circle btn-back"></i>
+          </div>
+          <div class="col-8 text-center">
+            <h4 class="f-21 m-0">Brýlové poukazy</h4>
+          </div>
+        </div>
+        <div *ngFor="let v of vouchers; let elIndex = index" class="row mt-4">
+          <div class="col">
+            <div class="p-10 border rounded">
+              <div class="row justify-content-between">
+                <div class="col-6 d-flex align-items-center">
+                  <span class="text-uppercase f-w-600 m-0">Poukaz {{elIndex+1}}</span>
+                </div>
+                <div class="col-auto d-flex align-items-center">
+                  <div (click)="removeVoucher($event, v.id, elIndex)" class="col-1 d-flex align-item-center p-0">
+                    <i class="icon-close text-danger f-20"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="row m-t-10">
+                <div class="col-auto">
+                  <div class="btn-group" role="group">
+                    <button *ngFor="let p of commonPricesHelper" (click)="setValue(p, v.id, elIndex)" type="button"
+                            [ngClass]="v.totalPrice.amount == p ? 'btn btn-primary btn-mini waves-effect waves-light' : 'btn btn-inverse-primary btn-mini waves-effect waves-light'">
+                      {{p}} Kč
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="row form-group align-items-center m-t-10 mb-0">
+                <label class="col-2 f-w-600 m-0 pr-0">
+                  Hodnota<span class="text-danger m-l-2">*</span>
+                </label>
+                <div class="col-3 sft-input-b-b p-r-10">
+                  <input (change)="setValue($event, v.id, elIndex)" type="number" [value]="v.totalPrice.amount"
+                         class="form-control form-control-sm" placeholder="Částka...">
+                </div>
+                <div class="col-auto f-w-600 pl-0">
+                  Kč
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="vouchers.length<4" class="row m-t-10">
+          <div class="col text-center text-uppercase">
+            <button (click)="addVoucher($event)" class="btn btn-link">
+              <i class="icon-plus m-r-10"></i>Přidat poukaz
+            </button>
+          </div>
+        </div>
+        <div class="row justify-content-center m-t-15">
+          <div class="col-auto">
+            <button (click)="save()" class="btn btn-save">
+              <i class="icon-check m-r-5"></i>Uložit
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
