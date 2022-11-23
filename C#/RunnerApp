@@ -1,0 +1,161 @@
+using Newtonsoft.Json;
+using System.Diagnostics;
+using System.Text;
+
+var source = @"
+[
+    { 
+        ""key"": ""a"",
+        ""title"": ""run notepad.exe"",
+        ""command"": ""C:\\WINDOWS\\system32\\notepad.exe"",
+        ""arguments"": """",
+        ""startMinimized"": true
+    },
+    { 
+        ""key"": ""s"",
+        ""title"": ""open new cmd cli"",
+        ""command"": ""C:\\WINDOWS\\system32\\cmd.exe"",
+        ""arguments"": ""/C start cmd""
+    },
+    { 
+        ""key"": ""f"",
+        ""title"": ""open file from current folder"",
+        ""command"": ""C:\\WINDOWS\\system32\\notepad.exe"",
+        ""arguments"": ""./configuration.txt""
+    }
+]
+";
+
+var configFile = "configuration.json";
+if (!File.Exists(Path.Combine(Directory.GetCurrentDirectory(), configFile)))
+{
+    using (FileStream fs = File.Create(Path.Combine(Directory.GetCurrentDirectory(), configFile)))
+    {
+        byte[] info = new UTF8Encoding(true).GetBytes(source);
+        fs.Write(info, 0, info.Length);
+    }
+}
+else
+{
+    using (StreamReader sr = File.OpenText(configFile))
+    {
+        string src = "";
+        string s = "";
+        while ((s = sr.ReadLine()) != null) {
+            src += s;
+        }
+
+        source = src;
+    }
+}
+
+var items = new List<Item>();
+
+try
+{
+    items = JsonConvert.DeserializeObject<List<Item>>(source);
+}
+catch (JsonReaderException)
+{
+    Console.WriteLine("Config file is corrupted !!!");
+    throw;
+}
+
+var isFirstLap = true;
+
+do
+{
+    if (isFirstLap)
+        PrintHeadline();
+    isFirstLap = false;
+
+    Console.WriteLine("------------------------------------------");
+    Console.WriteLine($"      \t   KEY \t  TITLE");
+    Console.WriteLine("------------------------------------------");
+    var i = 1;
+    foreach (var item in items)
+    {
+        Console.WriteLine($" {i}.\t   {item.Key}\t {item.Title}");
+        i++;
+    }
+
+    Console.WriteLine("");
+    Console.Write(">> Press key:  ");
+    string key = Console.ReadKey().KeyChar.ToString();
+    Console.WriteLine("");
+
+
+    var itemFounds = items?.Where(_ => _.Key == key).ToList();
+    if (!itemFounds.Any())
+    {
+        Console.WriteLine("");
+        Console.WriteLine($"No commands found for key {key} !!!");
+        Console.WriteLine("");
+        continue;
+    }
+    else if (itemFounds.Count > 1)
+    {
+        Console.WriteLine("");
+        Console.WriteLine("Multiple keys found !!!");
+
+        foreach (var itemFound in itemFounds)
+            Console.WriteLine($"{itemFound.Key} - {itemFound.Title}");
+
+        Console.WriteLine("-------------------------");
+        Console.WriteLine("");
+        continue;
+    }
+    else
+    {
+        Console.Clear();
+        PrintHeadline();
+        Console.WriteLine("");
+        Console.WriteLine("");
+        Console.WriteLine($">>> Running command ... \t {key} - {itemFounds[0].Title}  <<<");
+        Console.WriteLine("");
+        Console.WriteLine("");
+
+        var fileName = itemFounds[0].Command.StartsWith("./")
+            ? Path.Combine(Directory.GetCurrentDirectory(), itemFounds[0].Command[2..])
+            : itemFounds[0].Command;
+
+        var arguments = itemFounds[0].Arguments.Contains("./")
+            ? itemFounds[0].Arguments.Replace("./", Directory.GetCurrentDirectory() + "/")
+            : itemFounds[0].Arguments;
+
+        var startInfo = new ProcessStartInfo
+        {
+            Verb = "runas",
+            FileName = fileName,
+            Arguments = arguments,
+            WindowStyle = itemFounds[0].StartMinimized ? ProcessWindowStyle.Minimized : ProcessWindowStyle.Hidden,
+            UseShellExecute = itemFounds[0].StartMinimized,
+            CreateNoWindow = true,
+        };
+
+        Process.Start(startInfo);
+    }
+}
+while (true);
+
+static void PrintHeadline()
+{
+    Console.WriteLine("");
+    Console.WriteLine($"    RUNNNER 1.0        wau@dareis.monster");
+    Console.WriteLine("");
+}
+
+sealed class Settings
+{
+    public string Key { get; set; }
+    public List<Item> Items { get; set; } = new List<Item>();
+}
+
+sealed class Item
+{
+    public string Key { get; set; }
+    public string Title { get; set; }
+    public string Command { get; set; }
+    public string Arguments { get; set; }
+    public bool StartMinimized { get; set; }
+}
