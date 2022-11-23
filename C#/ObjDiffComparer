@@ -1,0 +1,43 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+
+namespace App.Core.SharedKernel
+{
+    public static class ObjectDiffComparer
+    {
+        public static List<(string key, string className, dynamic value, dynamic oldValue)> GetDifferences<T, T2>(T source,
+            T2 target,
+            string[] excludedNames = null) where T : class where T2 : class
+        {
+            var differences = new List<(string key, string className, dynamic value, dynamic oldValue)>();
+
+            Dictionary<string, object> GetProperties(object entryObject)
+            {
+                var props = entryObject.GetType()
+                    .GetProperties(BindingFlags.GetProperty | BindingFlags.Public | BindingFlags.Instance)
+                    .AsQueryable();
+
+                if (excludedNames != null) props = props.Where(prop => !(excludedNames.Contains(prop.Name)));
+
+                return props.ToDictionary(propInfo => propInfo.Name, propInfo => propInfo.GetValue(entryObject, null) ?? string.Empty);
+            }
+
+            var propSource = GetProperties(source);
+            var propTarget = GetProperties(target);
+
+            foreach (var prop in propSource)
+            {
+                if (prop.Value is object && prop.Value is not string)
+                {
+                    differences.AddRange(GetDifferences(prop.Value, propTarget[prop.Key]));
+                }
+                else if (propTarget.ContainsKey(prop.Key) && !prop.Value.Equals(propTarget[prop.Key]))
+                    differences.Add((prop.Key, source.GetType().Name, prop.Value, propTarget[prop.Key]));
+            }
+
+            return differences;
+        }
+    }
+}
